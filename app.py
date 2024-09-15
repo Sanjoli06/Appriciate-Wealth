@@ -1,55 +1,42 @@
-from flask import Flask, request, jsonify
-from flask_cors import CORS
-
+from flask import Flask, jsonify, request
 app = Flask(__name__)
-CORS(app)  # Allow cross-origin requests
 
-# In-memory storage for FAQs
-faqs = []
+faqs = [
+    {'id': 1, 'question': 'What is Fruit.ai?', 'answer': 'Fruit.ai is a health management app.'},
+    # Add more FAQs as needed
+]
 
-# Define a root route
-@app.route('/', methods=['GET'])
-def index():
-    return "Welcome to the Fruit.ai Backend API!", 200
-
-# GET /faqs - Fetch all FAQs
 @app.route('/faqs', methods=['GET'])
 def get_faqs():
-    return jsonify(faqs), 200
+    return jsonify(faqs)
 
-# GET /faqs/<id> - Fetch a single FAQ by ID
-@app.route('/faqs/<int:faq_id>', methods=['GET'])
-def get_faq(faq_id):
-    faq = next((item for item in faqs if item['id'] == faq_id), None)
-    if faq is None:
-        return jsonify({'error': 'FAQ not found'}), 404
-    return jsonify(faq), 200
+@app.route('/faqs/<int:id>', methods=['GET'])
+def get_faq(id):
+    faq = next((faq for faq in faqs if faq['id'] == id), None)
+    return jsonify(faq) if faq else ('', 404)
 
-# POST /faqs - Create a new FAQ
 @app.route('/faqs', methods=['POST'])
 def create_faq():
-    new_faq = request.json
-    new_faq['id'] = len(faqs) + 1  # Simple ID assignment
+    data = request.get_json()
+    new_id = max(faq['id'] for faq in faqs) + 1 if faqs else 1
+    new_faq = {'id': new_id, **data}
     faqs.append(new_faq)
     return jsonify(new_faq), 201
 
-# PUT /faqs/<id> - Update an FAQ by ID
-@app.route('/faqs/<int:faq_id>', methods=['PUT'])
-def update_faq(faq_id):
-    faq = next((item for item in faqs if item['id'] == faq_id), None)
-    if faq is None:
-        return jsonify({'error': 'FAQ not found'}), 404
-    
-    data = request.json
-    faq.update(data)
-    return jsonify(faq), 200
+@app.route('/faqs/<int:id>', methods=['PUT'])
+def update_faq(id):
+    data = request.get_json()
+    faq = next((faq for faq in faqs if faq['id'] == id), None)
+    if faq:
+        faq.update(data)
+        return jsonify(faq)
+    return ('', 404)
 
-# DELETE /faqs/<id> - Delete an FAQ by ID
-@app.route('/faqs/<int:faq_id>', methods=['DELETE'])
-def delete_faq(faq_id):
+@app.route('/faqs/<int:id>', methods=['DELETE'])
+def delete_faq(id):
     global faqs
-    faqs = [item for item in faqs if item['id'] != faq_id]
-    return jsonify({'message': 'FAQ deleted successfully'}), 200
+    faqs = [faq for faq in faqs if faq['id'] != id]
+    return ('', 204)
 
 if __name__ == '__main__':
     app.run(debug=True)
